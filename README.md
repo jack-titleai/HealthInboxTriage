@@ -4,12 +4,13 @@ A healthcare provider inbox triage application using NLP to classify and priorit
 
 ## Overview
 
-HealthTriage is a Python application designed to help healthcare providers efficiently manage their patient message inboxes. It uses Natural Language Processing (NLP) to automatically classify incoming messages into priority categories, helping providers focus on the most urgent communications first.
+HealthTriage is a Python application designed to help healthcare providers efficiently manage their patient message inboxes. It uses Natural Language Processing (NLP) to automatically classify incoming messages both by category and urgency level, helping providers focus on the most urgent communications first.
 
 Key features:
 - Automated message classification using NLP (powered by OpenAI)
+- Dual classification: separate category and urgency level assessments
 - Interactive dashboard for message management
-- Filtering by date and triage category
+- Filtering by date, category, and urgency level
 - Clear visual indicators of message urgency
 - Easy message expansion to view full content
 - Data persistence via SQLite
@@ -62,19 +63,26 @@ streamlit run healthtriage/app.py
 ### Viewing the Dashboard
 
 1. Switch to the "Dashboard" tab to see all processed messages
-2. Use the date range picker and category filter to narrow down messages
-3. Expand message categories to view individual messages
+2. Use the date range picker, category filter, and urgency level filter to narrow down messages
+3. Expand message sections to view individual messages
 4. Messages are color-coded by urgency level
 
 ### Understanding the Classification System
 
-The "Triage Information" tab provides details about the classification categories:
+The "Triage Information" tab provides details about the classification system.
 
-- **URGENT_CLINICAL (Level 5)**: Immediate clinical attention required
-- **CLINICAL (Level 4)**: Clinical attention needed but not immediate
-- **PRESCRIPTION (Level 3)**: Prescription refill or medication question
-- **ADMINISTRATIVE (Level 2)**: Non-urgent administrative request
-- **INFORMATIONAL (Level 1)**: General information, no action required
+#### Message Categories
+- **CLINICAL**: Medical issues, symptoms, test results, health concerns
+- **PRESCRIPTION**: Medication-related issues, refill requests, dosage questions
+- **ADMINISTRATIVE**: Appointments, billing, records, referrals
+- **INFORMATIONAL**: General information, thank you notes, updates
+
+#### Urgency Levels
+- **Level 5 (IMMEDIATE)**: Requires immediate attention, potentially life-threatening
+- **Level 4 (URGENT)**: Urgent but not immediately life-threatening
+- **Level 3 (PRIORITY)**: Higher priority than routine matters
+- **Level 2 (ROUTINE)**: Normal/routine priority
+- **Level 1 (LOW)**: Low priority or no action required
 
 ## Code Structure
 
@@ -102,9 +110,12 @@ healthtriage/
 
 ## Customization
 
-### Triage Categories
+### Triage Categories and Urgency Levels
 
-The triage categories and their corresponding urgency levels are defined in `triage.py`. You can modify these to match your specific healthcare workflow.
+The triage categories and urgency levels are independently defined in `triage.py`. You can modify these to match your specific healthcare workflow needs:
+
+- `TRIAGE_CATEGORIES`: List of possible message categories (what the message is about)
+- `URGENCY_LEVELS`: Dictionary mapping urgency names to level values (how quickly it needs attention)
 
 ### Database Location
 
@@ -129,4 +140,3 @@ If you encounter errors related to the OpenAI API:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-

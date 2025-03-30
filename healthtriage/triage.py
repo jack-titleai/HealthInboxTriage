@@ -14,13 +14,21 @@ from healthtriage.schemas import Message, TriagedMessage
 class MessageTriager:
     """Classify and triage healthcare messages using NLP."""
     
-    # Define the triage categories and their urgency levels
-    TRIAGE_CATEGORIES = {
-        "URGENT_CLINICAL": 5,  # Immediate clinical attention required
-        "CLINICAL": 4,         # Clinical attention needed but not immediate
-        "PRESCRIPTION": 3,     # Prescription refill or medication question
-        "ADMINISTRATIVE": 2,   # Non-urgent administrative request
-        "INFORMATIONAL": 1     # General information, no action required
+    # Define the possible triage categories (independent of urgency)
+    TRIAGE_CATEGORIES = [
+        "CLINICAL",      # Clinical/medical issues
+        "PRESCRIPTION",  # Medication and prescription related
+        "ADMINISTRATIVE", # Admin issues like scheduling, records
+        "INFORMATIONAL"   # General information, updates
+    ]
+    
+    # Define the urgency levels (1-5, with 5 being most urgent)
+    URGENCY_LEVELS = {
+        "IMMEDIATE": 5,   # Needs immediate attention
+        "URGENT": 4,      # Needs urgent attention
+        "PRIORITY": 3,    # Higher than normal priority
+        "ROUTINE": 2,     # Normal/routine priority
+        "LOW": 1          # Low priority/no action required
     }
     
     def __init__(self, api_key: str = None):
@@ -49,56 +57,79 @@ class MessageTriager:
         description = """# Healthcare Message Triage Classification System
 
 ## Overview
-This system classifies incoming healthcare messages into five priority categories, each with an assigned urgency level (1-5, with 5 being the most urgent).
+This system independently classifies incoming healthcare messages by:
+1. Message category (what the message is about)
+2. Urgency level (how quickly it needs attention)
 
-## Triage Categories
+## Message Categories
 
-### 1. URGENT_CLINICAL (Level 5)
-Messages requiring immediate clinical attention. Examples include:
-- Reports of severe symptoms (chest pain, difficulty breathing, severe bleeding)
-- Adverse medication reactions
-- Post-procedure complications
-- Suicidal ideation or acute mental health crises
+### CLINICAL
+Messages related to clinical or medical concerns:
+- Symptoms or health concerns
+- Test results and their interpretation
+- Follow-up on previous treatments
+- Questions about medical conditions
 
-### 2. CLINICAL (Level 4)
-Messages requiring clinical attention but not immediate intervention. Examples include:
-- New or worsening symptoms that aren't life-threatening
-- Abnormal test results requiring follow-up
-- Chronic condition management concerns
-- Non-emergent mental health concerns
-
-### 3. PRESCRIPTION (Level 3)
-Messages related to medications and prescriptions. Examples include:
+### PRESCRIPTION
+Messages specifically about medications and prescriptions:
 - Prescription refill requests
 - Questions about medication dosage or instructions
 - Side effect inquiries
 - Request for new medications
 
-### 4. ADMINISTRATIVE (Level 2)
-Non-urgent administrative requests or questions. Examples include:
+### ADMINISTRATIVE
+Non-clinical administrative requests:
 - Appointment scheduling or changes
 - Referral requests
 - Insurance and billing questions
 - Medical record requests
 
-### 5. INFORMATIONAL (Level 1)
-General information or updates that require minimal action. Examples include:
+### INFORMATIONAL
+General information or updates:
 - General healthcare inquiries
 - Thank you messages
-- Updates without specific requests
+- Status updates without specific requests
 - Educational material requests
 
-## Implementation Notes
-Each message is analyzed using NLP to determine its appropriate category and assigned the corresponding urgency level. The system considers:
-- Type of medical concern mentioned
-- Presence of urgent terminology
-- Explicit time-sensitivity
-- Patient context when available
+## Urgency Levels
+
+### Level 5 (IMMEDIATE)
+Requires immediate attention, potentially life-threatening:
+- Severe symptoms like chest pain or difficulty breathing
+- Severe adverse reactions
+- Situations requiring emergency intervention
+
+### Level 4 (URGENT)
+Urgent but not immediately life-threatening:
+- Concerning symptoms that need prompt attention
+- Problems requiring same-day response
+- Significant health issues
+
+### Level 3 (PRIORITY)
+Higher priority than routine matters:
+- Issues that should be addressed within 24-48 hours
+- Problems that might worsen if left unattended
+- Questions needing fairly prompt responses
+
+### Level 2 (ROUTINE)
+Normal/routine priority:
+- Standard follow-up communication
+- Questions that can be answered within normal timeframes
+- Routine administrative matters
+
+### Level 1 (LOW)
+Low priority or no action required:
+- Thank you messages
+- FYI-type updates
+- General information that doesn't require a response
+
+## Implementation
+Each message receives both a category and an urgency level, allowing staff to prioritize messages by urgency while also organizing workflow by category.
 """
         return description
     
     def triage_message(self, message: Message) -> TriagedMessage:
-        """Classify a message into a triage category using NLP.
+        """Classify a message into a triage category and assign an urgency level using NLP.
         
         Args:
             message: The message to classify
@@ -130,7 +161,7 @@ Each message is analyzed using NLP to determine its appropriate category and ass
                 message=message.message,
                 datetime=message.datetime,
                 triage_category=result["category"],
-                triage_level=self.TRIAGE_CATEGORIES[result["category"]],
+                urgency_level=result["urgency_level"],
                 confidence=result["confidence"],
                 processed_at=datetime.now()
             )
@@ -147,7 +178,7 @@ Each message is analyzed using NLP to determine its appropriate category and ass
                 message=message.message,
                 datetime=message.datetime,
                 triage_category="CLINICAL",
-                triage_level=self.TRIAGE_CATEGORIES["CLINICAL"],
+                urgency_level=3,  # Medium urgency as a safe default
                 confidence=0.5,
                 processed_at=datetime.now()
             )
@@ -169,24 +200,35 @@ Each message is analyzed using NLP to determine its appropriate category and ass
         Returns:
             System prompt explaining the triage task
         """
-        categories = ", ".join(self.TRIAGE_CATEGORIES.keys())
+        categories = ", ".join(self.TRIAGE_CATEGORIES)
+        urgency_levels = ", ".join([f"{k} ({v})" for k, v in self.URGENCY_LEVELS.items()])
         
-        return f"""You are an expert healthcare message triage assistant. Your task is to classify incoming patient messages 
-into one of the following categories: {categories}.
+        return f"""You are an expert healthcare message triage assistant. Your task is to independently analyze two aspects of each message:
 
-URGENT_CLINICAL (Level 5): Messages requiring immediate clinical attention (severe symptoms, adverse reactions, etc.)
-CLINICAL (Level 4): Messages requiring clinical attention but not immediate intervention (non-urgent symptoms, test results)
-PRESCRIPTION (Level 3): Messages related to medications and prescriptions
-ADMINISTRATIVE (Level 2): Non-urgent administrative requests (appointments, billing, referrals)
-INFORMATIONAL (Level 1): General information or updates requiring minimal action
+1. CATEGORY: Classify the message into one of the following categories: {categories}
+2. URGENCY LEVEL: Assign an urgency level from 1-5, with 5 being most urgent
 
-Analyze both the subject and message content to determine the appropriate category.
+Category definitions:
+- CLINICAL: Medical issues, symptoms, test results, health concerns
+- PRESCRIPTION: Medication-related issues, refill requests, dosage questions
+- ADMINISTRATIVE: Appointments, billing, records, referrals
+- INFORMATIONAL: General information, thank you notes, updates
+
+Urgency level definitions:
+- 5 (IMMEDIATE): Potentially life-threatening, requires immediate attention
+- 4 (URGENT): Urgent but not immediately life-threatening
+- 3 (PRIORITY): Higher priority than routine, should be addressed soon
+- 2 (ROUTINE): Normal priority, can be handled within standard timeframes
+- 1 (LOW): Low priority, informational only
+
+Analyze both the subject and message content to determine both aspects.
 Respond with a JSON object containing:
-1. "category": The assigned triage category (one of the categories listed above)
-2. "confidence": A number between 0 and 1 indicating your confidence in the classification
-3. "reasoning": A brief explanation of why you assigned this category
+1. "category": The assigned category (one of the categories listed above)
+2. "urgency_level": A number between 1 and 5 representing urgency
+3. "confidence": A number between 0 and 1 indicating your confidence in the classification
+4. "reasoning": A brief explanation of why you assigned this category and urgency level
 
-Always err on the side of caution - if in doubt between two categories, choose the higher urgency one."""
+Always err on the side of caution - if in doubt between two urgency levels, choose the higher one."""
     
     def _construct_triage_prompt(self, message: Message) -> str:
         """Construct the prompt for the triage classification.
@@ -206,4 +248,4 @@ Message:
 
 Date/Time: {message.datetime.strftime('%Y-%m-%d %H:%M:%S')}
 
-Classify this message into the most appropriate triage category."""
+Determine both the category and urgency level of this message."""

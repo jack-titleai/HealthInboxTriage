@@ -1,94 +1,80 @@
 # Healthcare Message Triage Classification System
 
 ## Overview
-This document describes the message triage classification system used for healthcare provider inbox management. The system automatically classifies incoming patient messages into five priority categories, assigning each an urgency level to help healthcare providers prioritize their response efficiently.
+This system independently classifies incoming healthcare messages by:
+1. Message category (what the message is about)
+2. Urgency level (how quickly it needs attention)
 
-## Classification Schema
+## Message Categories
 
-### Urgency Levels
-Messages are assigned an urgency level from 1 to 5, with higher numbers indicating greater urgency:
-- Level 5: Highest urgency, requires immediate attention
-- Level 4: High urgency, should be addressed promptly
-- Level 3: Medium urgency, should be addressed within a normal timeframe
-- Level 2: Low urgency, can be addressed when time permits
-- Level 1: Minimal urgency, informational only
+### CLINICAL
+Messages related to clinical or medical concerns:
+- Symptoms or health concerns
+- Test results and their interpretation
+- Follow-up on previous treatments
+- Questions about medical conditions
 
-### Triage Categories
-
-#### 1. URGENT_CLINICAL (Level 5)
-Messages that require immediate clinical attention due to potential serious health concerns.
-
-**Examples:**
-- Reports of severe symptoms (chest pain, difficulty breathing, severe bleeding)
-- Suspected serious adverse medication reactions
-- Post-procedure complications
-- Suicidal ideation or acute mental health crises
-- Severe pain reports
-- Potential stroke or heart attack symptoms
-
-**Reasoning:**
-These messages indicate potentially life-threatening conditions where delayed response could result in serious harm to the patient. The clinical team should be alerted immediately.
-
-#### 2. CLINICAL (Level 4)
-Messages that require clinical attention but not immediate intervention.
-
-**Examples:**
-- New or worsening symptoms that aren't immediately life-threatening
-- Abnormal test results requiring follow-up
-- Chronic condition management concerns
-- Non-emergent mental health concerns
-- Moderate pain reports
-- Follow-up questions about diagnoses
-
-**Reasoning:**
-These messages require clinical expertise but don't represent immediate emergencies. They should be addressed promptly but don't require instantaneous response.
-
-#### 3. PRESCRIPTION (Level 3)
-Messages related to medications and prescriptions.
-
-**Examples:**
+### PRESCRIPTION
+Messages specifically about medications and prescriptions:
 - Prescription refill requests
 - Questions about medication dosage or instructions
 - Side effect inquiries
 - Request for new medications
-- Questions about medication interactions
-- Insurance authorization for medications
 
-**Reasoning:**
-Medication-related messages have their own category due to their frequency and the specialized workflow often required for prescription handling.
-
-#### 4. ADMINISTRATIVE (Level 2)
-Non-urgent administrative requests or questions.
-
-**Examples:**
+### ADMINISTRATIVE
+Non-clinical administrative requests:
 - Appointment scheduling or changes
 - Referral requests
 - Insurance and billing questions
 - Medical record requests
-- Forms completion requests
-- General administrative inquiries
 
-**Reasoning:**
-These messages don't require clinical expertise and can typically be handled by administrative staff rather than clinical providers.
-
-#### 5. INFORMATIONAL (Level 1)
-General information or updates that require minimal action.
-
-**Examples:**
+### INFORMATIONAL
+General information or updates:
 - General healthcare inquiries
 - Thank you messages
 - Status updates without specific requests
 - Educational material requests
-- Newsletter responses
-- General feedback
 
-**Reasoning:**
-These messages require the least urgency as they don't involve specific patient care needs or clinical questions.
+## Urgency Levels
+
+### Level 5 (IMMEDIATE)
+Requires immediate attention, potentially life-threatening:
+- Severe symptoms like chest pain or difficulty breathing
+- Severe adverse reactions
+- Situations requiring emergency intervention
+
+### Level 4 (URGENT)
+Urgent but not immediately life-threatening:
+- Concerning symptoms that need prompt attention
+- Problems requiring same-day response
+- Significant health issues
+
+### Level 3 (PRIORITY)
+Higher priority than routine matters:
+- Issues that should be addressed within 24-48 hours
+- Problems that might worsen if left unattended
+- Questions needing fairly prompt responses
+
+### Level 2 (ROUTINE)
+Normal/routine priority:
+- Standard follow-up communication
+- Questions that can be answered within normal timeframes
+- Routine administrative matters
+
+### Level 1 (LOW)
+Low priority or no action required:
+- Thank you messages
+- FYI-type updates
+- General information that doesn't require a response
 
 ## Implementation Notes
 
 ### Classification Process
-Each message undergoes Natural Language Processing (NLP) analysis to determine its appropriate category. The system considers:
+Each message undergoes Natural Language Processing (NLP) analysis to independently determine both:
+1. Its appropriate category (what it's about)
+2. Its urgency level (how quickly it needs attention)
+
+The system considers:
 
 1. **Content Analysis:**
    - Identification of medical terminology
@@ -98,12 +84,11 @@ Each message undergoes Natural Language Processing (NLP) analysis to determine i
 
 2. **Contextual Factors:**
    - Time sensitivity indicated in the message
-   - Patient history (when available)
-   - Previous message patterns
+   - Nature of the concern
    - Explicit urgency indicators
 
 3. **Safety Protocol:**
-   - The system applies a "safety margin" by escalating borderline cases to the higher urgency category
+   - The system applies a "safety margin" by escalating borderline cases to the higher urgency level
    - Messages with ambiguous intent but potentially serious implications are elevated in priority
 
 ### Confidence Scoring
@@ -111,13 +96,13 @@ Each classification includes a confidence score (0-1) indicating the system's ce
 
 ## Benefits of This Schema
 
-1. **Clinical Safety:** Prioritizes patient safety by ensuring urgent clinical matters receive immediate attention.
+1. **Dual Classification:** Separating category and urgency provides more nuanced triage, allowing a clinical message to be urgent or routine, or an administrative message to be high priority when appropriate.
 
-2. **Workflow Efficiency:** Allows healthcare providers to focus on clinical matters while administrative staff can handle non-clinical requests.
+2. **Workflow Management:** Categories can be used to route messages to appropriate teams (clinical vs. administrative), while urgency levels determine response time priority.
 
-3. **Resource Allocation:** Enables appropriate staffing based on message volume within each category.
+3. **Resource Allocation:** Enables appropriate staffing based on message volume within each category and urgency level.
 
-4. **Response Time Management:** Facilitates appropriate response times based on message urgency.
+4. **Response Time Management:** Facilitates appropriate response times based on urgency level regardless of message category.
 
 5. **Audit and Quality Improvement:** Categorized messages allow for analysis of communication patterns and potential workflow improvements.
 

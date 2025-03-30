@@ -82,7 +82,7 @@ def show_dashboard(db: Database):
     # Create filter section
     st.subheader("Filter Messages")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     # Date range filter
     min_date, max_date = get_date_range_from_messages(all_messages)
@@ -94,50 +94,63 @@ def show_dashboard(db: Database):
     # Triage category filter
     with col3:
         categories = db.get_triage_categories()
-        selected_category = st.selectbox("Triage Category", ["All"] + categories)
+        selected_category = st.selectbox("Category", ["All"] + categories)
+    
+    # Urgency level filter
+    with col4:
+        urgency_levels = db.get_urgency_levels()
+        selected_urgency = st.selectbox("Urgency Level", ["All"] + [str(level) for level in urgency_levels])
     
     # Convert dates to datetime objects for filtering
     start_datetime = datetime.combine(start_date, datetime.min.time())
     end_datetime = datetime.combine(end_date, datetime.max.time())
     
     # Apply filters
-    if selected_category == "All":
-        filtered_messages = db.get_triaged_messages_by_filter(
-            start_date=start_datetime,
-            end_date=end_datetime
-        )
-    else:
-        filtered_messages = db.get_triaged_messages_by_filter(
-            start_date=start_datetime,
-            end_date=end_datetime,
-            triage_category=selected_category
-        )
+    filter_params = {
+        "start_date": start_datetime,
+        "end_date": end_datetime
+    }
+    
+    if selected_category != "All":
+        filter_params["triage_category"] = selected_category
+    
+    if selected_urgency != "All":
+        filter_params["urgency_level"] = int(selected_urgency)
+    
+    filtered_messages = db.get_triaged_messages_by_filter(**filter_params)
     
     # Dashboard metrics
     st.subheader("Dashboard")
     
-    # Display metrics
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Message count metrics by urgency level
+    st.write("Messages by Urgency Level")
+    cols = st.columns(5)
+    urgency_names = {
+        5: "IMMEDIATE",
+        4: "URGENT",
+        3: "PRIORITY",
+        2: "ROUTINE", 
+        1: "LOW"
+    }
     
-    with col1:
-        urgent_count = sum(1 for m in filtered_messages if m.triage_level == 5)
-        st.metric("Urgent Clinical", urgent_count)
+    for i, (level, name) in enumerate(urgency_names.items(), start=0):
+        with cols[i % 5]:
+            count = sum(1 for m in filtered_messages if m.urgency_level == level)
+            st.metric(f"Level {level}: {name}", count)
     
-    with col2:
-        clinical_count = sum(1 for m in filtered_messages if m.triage_level == 4)
-        st.metric("Clinical", clinical_count)
+    # Message count metrics by category
+    st.write("Messages by Category")
+    category_counts = {}
+    for msg in filtered_messages:
+        category_counts[msg.triage_category] = category_counts.get(msg.triage_category, 0) + 1
     
-    with col3:
-        prescription_count = sum(1 for m in filtered_messages if m.triage_level == 3)
-        st.metric("Prescription", prescription_count)
-    
-    with col4:
-        admin_count = sum(1 for m in filtered_messages if m.triage_level == 2)
-        st.metric("Administrative", admin_count)
-    
-    with col5:
-        info_count = sum(1 for m in filtered_messages if m.triage_level == 1)
-        st.metric("Informational", info_count)
+    # Create columns based on number of categories
+    num_categories = len(category_counts)
+    if num_categories > 0:
+        category_cols = st.columns(min(num_categories, 5))
+        for i, (category, count) in enumerate(category_counts.items()):
+            with category_cols[i % 5]:
+                st.metric(category, count)
     
     # Display charts
     chart1, chart2 = st.columns(2)
@@ -157,37 +170,31 @@ def show_dashboard(db: Database):
         st.info("No messages match the selected filters.")
         return
     
-    # Group messages by triage level for display
-    messages_by_level = {}
+    # Group messages by urgency level for display
+    messages_by_urgency = {}
     for level in range(5, 0, -1):  # 5 to 1 in descending order
-        level_messages = [m for m in filtered_messages if m.triage_level == level]
+        level_messages = [m for m in filtered_messages if m.urgency_level == level]
         if level_messages:
-            messages_by_level[level] = level_messages
+            messages_by_urgency[level] = level_messages
     
-    # Create expandable sections for each triage level
-    for level, messages in messages_by_level.items():
-        # Map level to category name
-        level_names = {
-            5: "URGENT_CLINICAL",
-            4: "CLINICAL",
-            3: "PRESCRIPTION",
-            2: "ADMINISTRATIVE",
-            1: "INFORMATIONAL"
-        }
-        
-        category_name = level_names.get(level, f"Level {level}")
+    # Create expandable sections for each urgency level
+    for level, messages in messages_by_urgency.items():
+        # Map level to name
+        level_name = urgency_names.get(level, f"Level {level}")
         color = get_message_alert_color(level)
         
         # Create expandable section
-        with st.expander(f"{category_name} ({len(messages)})", expanded=(level == 5)):
-            # Display each message in this category
+        with st.expander(f"Level {level}: {level_name} ({len(messages)})", expanded=(level == 5)):
+            # Display each message in this urgency level
             for msg in messages:
                 # Create message card with custom styling
                 message_container = st.container()
                 message_container.markdown(f"""
                 <div style="border-left: 5px solid {color}; padding-left: 10px; margin-bottom: 20px;">
                     <h4 style="margin: 0;">{msg.subject}</h4>
-                    <p style="color: gray; margin: 0;">{format_datetime(msg.datetime)}</p>
+                    <p style="color: gray; margin: 0;">
+                        {format_datetime(msg.datetime)} | Category: <strong>{msg.triage_category}</strong> | Confidence: {msg.confidence:.2f}
+                    </p>
                     <p style="margin-top: 10px;">{msg.message}</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -277,45 +284,26 @@ def show_triage_info(triager: MessageTriager):
     triage_description = triager.get_triage_description()
     st.markdown(triage_description)
     
-    # Display triage level colors
-    st.subheader("Triage Level Colors")
+    # Display urgency level colors
+    st.subheader("Urgency Level Colors")
     
     cols = st.columns(5)
     
-    with cols[0]:
-        st.markdown("""
-        <div style="background-color: #e74c3c; color: white; padding: 10px; border-radius: 5px; text-align: center;">
-            <strong>URGENT_CLINICAL</strong><br>Level 5
-        </div>
-        """, unsafe_allow_html=True)
+    urgency_data = [
+        {"level": 5, "name": "IMMEDIATE", "color": "#e74c3c"},
+        {"level": 4, "name": "URGENT", "color": "#f39c12"},
+        {"level": 3, "name": "PRIORITY", "color": "#3498db"},
+        {"level": 2, "name": "ROUTINE", "color": "#2ecc71"},
+        {"level": 1, "name": "LOW", "color": "#95a5a6"}
+    ]
     
-    with cols[1]:
-        st.markdown("""
-        <div style="background-color: #f39c12; color: white; padding: 10px; border-radius: 5px; text-align: center;">
-            <strong>CLINICAL</strong><br>Level 4
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with cols[2]:
-        st.markdown("""
-        <div style="background-color: #3498db; color: white; padding: 10px; border-radius: 5px; text-align: center;">
-            <strong>PRESCRIPTION</strong><br>Level 3
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with cols[3]:
-        st.markdown("""
-        <div style="background-color: #2ecc71; color: white; padding: 10px; border-radius: 5px; text-align: center;">
-            <strong>ADMINISTRATIVE</strong><br>Level 2
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with cols[4]:
-        st.markdown("""
-        <div style="background-color: #95a5a6; color: white; padding: 10px; border-radius: 5px; text-align: center;">
-            <strong>INFORMATIONAL</strong><br>Level 1
-        </div>
-        """, unsafe_allow_html=True)
+    for i, data in enumerate(urgency_data):
+        with cols[i]:
+            st.markdown(f"""
+            <div style="background-color: {data['color']}; color: white; padding: 10px; border-radius: 5px; text-align: center;">
+                <strong>Level {data['level']}</strong><br>{data['name']}
+            </div>
+            """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":

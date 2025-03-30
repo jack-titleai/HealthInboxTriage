@@ -18,7 +18,9 @@ class Message:
 @dataclass
 class TriagedMessage(Message):
     """Represents a triaged message with classification details."""
+    # Category is now independent (e.g., "CLINICAL", "ADMINISTRATIVE", "PRESCRIPTION")
     triage_category: str
-    triage_level: int
+    # Urgency level is now independent (1-5 scale, with 5 being most urgent)
+    urgency_level: int
     confidence: float
     processed_at: Optional[datetime] = None

@@ -19,6 +19,20 @@ class Database:
             db_path: Path to the SQLite database file
         """
         self.db_path = db_path
+        
+        # Check if database already exists
+        db_exists = os.path.exists(self.db_path)
+        
+        # If the database already exists, rename it as a backup
+        if db_exists:
+            backup_path = f"{self.db_path}.bak"
+            try:
+                os.rename(self.db_path, backup_path)
+                print(f"Existing database backed up to {backup_path}")
+            except Exception as e:
+                print(f"Warning: Could not back up existing database: {e}")
+        
+        # Create the tables
         self._create_tables()
     
     def _get_connection(self) -> sqlite3.Connection:
@@ -42,12 +56,12 @@ class Database:
         )
         ''')
         
-        # Create triaged_messages table
+        # Create triaged_messages table with separated urgency_level and category
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS triaged_messages (
             message_id TEXT PRIMARY KEY,
             triage_category TEXT NOT NULL,
-            triage_level INTEGER NOT NULL,
+            urgency_level INTEGER NOT NULL,
             confidence REAL NOT NULL,
             processed_at TEXT NOT NULL,
             FOREIGN KEY (message_id) REFERENCES messages (message_id)
@@ -112,10 +126,10 @@ class Database:
         processed_at = triaged_message.processed_at or datetime.now()
         cursor.execute(
             """INSERT OR REPLACE INTO triaged_messages 
-               (message_id, triage_category, triage_level, confidence, processed_at) 
+               (message_id, triage_category, urgency_level, confidence, processed_at) 
                VALUES (?, ?, ?, ?, ?)""",
             (triaged_message.message_id, triaged_message.triage_category, 
-             triaged_message.triage_level, triaged_message.confidence, processed_at.isoformat())
+             triaged_message.urgency_level, triaged_message.confidence, processed_at.isoformat())
         )
         
         conn.commit()
@@ -132,10 +146,10 @@ class Database:
         
         cursor.execute("""
         SELECT m.message_id, m.subject, m.message, m.datetime, 
-               t.triage_category, t.triage_level, t.confidence, t.processed_at
+               t.triage_category, t.urgency_level, t.confidence, t.processed_at
         FROM messages m
         JOIN triaged_messages t ON m.message_id = t.message_id
-        ORDER BY t.triage_level DESC, m.datetime DESC
+        ORDER BY t.urgency_level DESC, m.datetime DESC
         """)
         
         results = cursor.fetchall()
@@ -162,7 +176,7 @@ class Database:
                     message=row['message'],
                     datetime=msg_datetime,
                     triage_category=row['triage_category'],
-                    triage_level=row['triage_level'],
+                    urgency_level=row['urgency_level'],
                     confidence=row['confidence'],
                     processed_at=processed_at
                 )
@@ -176,17 +190,17 @@ class Database:
         return triaged_messages
     
     def get_triaged_messages_by_filter(self, 
-                                      start_date: Optional[datetime] = None,
-                                      end_date: Optional[datetime] = None,
-                                      triage_category: Optional[str] = None,
-                                      triage_level: Optional[int] = None) -> List[TriagedMessage]:
+                                     start_date: Optional[datetime] = None,
+                                     end_date: Optional[datetime] = None,
+                                     triage_category: Optional[str] = None,
+                                     urgency_level: Optional[int] = None) -> List[TriagedMessage]:
         """Get triaged messages filtered by criteria.
         
         Args:
             start_date: Optional start date for filtering
             end_date: Optional end date for filtering
             triage_category: Optional triage category for filtering
-            triage_level: Optional triage level for filtering
+            urgency_level: Optional urgency level for filtering
             
         Returns:
             List of filtered triaged messages
@@ -196,7 +210,7 @@ class Database:
         
         query = """
         SELECT m.message_id, m.subject, m.message, m.datetime, 
-               t.triage_category, t.triage_level, t.confidence, t.processed_at
+               t.triage_category, t.urgency_level, t.confidence, t.processed_at
         FROM messages m
         JOIN triaged_messages t ON m.message_id = t.message_id
         WHERE 1=1
@@ -215,11 +229,11 @@ class Database:
             query += " AND t.triage_category = ?"
             params.append(triage_category)
         
-        if triage_level is not None:
-            query += " AND t.triage_level = ?"
-            params.append(triage_level)
+        if urgency_level is not None:
+            query += " AND t.urgency_level = ?"
+            params.append(urgency_level)
         
-        query += " ORDER BY t.triage_level DESC, m.datetime DESC"
+        query += " ORDER BY t.urgency_level DESC, m.datetime DESC"
         
         cursor.execute(query, params)
         results = cursor.fetchall()
@@ -246,7 +260,7 @@ class Database:
                     message=row['message'],
                     datetime=msg_datetime,
                     triage_category=row['triage_category'],
-                    triage_level=row['triage_level'],
+                    urgency_level=row['urgency_level'],
                     confidence=row['confidence'],
                     processed_at=processed_at
                 )
@@ -319,19 +333,19 @@ class Database:
         
         return categories
     
-    def get_triage_levels(self) -> List[int]:
-        """Get all unique triage levels from the database.
+    def get_urgency_levels(self) -> List[int]:
+        """Get all unique urgency levels from the database.
         
         Returns:
-            List of unique triage levels
+            List of unique urgency levels
         """
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT DISTINCT triage_level FROM triaged_messages ORDER BY triage_level")
+        cursor.execute("SELECT DISTINCT urgency_level FROM triaged_messages ORDER BY urgency_level")
         results = cursor.fetchall()
         
-        levels = [row['triage_level'] for row in results]
+        levels = [row['urgency_level'] for row in results]
         conn.close()
         
         return levels

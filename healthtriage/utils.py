@@ -45,43 +45,67 @@ def create_triage_summary_chart(messages: List[TriagedMessage]) -> go.Figure:
         # Return empty figure if no messages
         return go.Figure()
     
-    # Count messages by category
-    category_counts = {}
+    # Count messages by category and urgency level
+    data = []
     for msg in messages:
-        category_counts[msg.triage_category] = category_counts.get(msg.triage_category, 0) + 1
+        data.append({
+            "Category": msg.triage_category,
+            "Urgency": msg.urgency_level,
+            "Count": 1
+        })
     
-    # Create DataFrame for plotting
-    df = pd.DataFrame([
-        {"Category": category, "Count": count} 
-        for category, count in category_counts.items()
-    ])
+    df = pd.DataFrame(data)
     
-    # Define color scheme for triage levels
-    color_map = {
-        "URGENT_CLINICAL": "#e74c3c",    # Red
-        "CLINICAL": "#f39c12",           # Orange
-        "PRESCRIPTION": "#3498db",       # Blue
-        "ADMINISTRATIVE": "#2ecc71",     # Green
-        "INFORMATIONAL": "#95a5a6"       # Gray
+    # Get urgency labels for better display
+    urgency_labels = {
+        5: "5-IMMEDIATE",
+        4: "4-URGENT",
+        3: "3-PRIORITY",
+        2: "2-ROUTINE", 
+        1: "1-LOW"
     }
     
-    # Create bar chart
+    # Map urgency levels to labels
+    df["Urgency Label"] = df["Urgency"].map(urgency_labels)
+    
+    # Group by category and urgency
+    df_grouped = df.groupby(["Category", "Urgency", "Urgency Label"]).sum().reset_index()
+    
+    # Sort by urgency in descending order
+    df_grouped = df_grouped.sort_values("Urgency", ascending=False)
+    
+    # Define color scheme based on urgency levels
+    color_map = {
+        5: "#e74c3c",  # Red for IMMEDIATE
+        4: "#f39c12",  # Orange for URGENT
+        3: "#3498db",  # Blue for PRIORITY
+        2: "#2ecc71",  # Green for ROUTINE
+        1: "#95a5a6"   # Gray for LOW
+    }
+    
+    # Create stacked bar chart
     fig = px.bar(
-        df, 
+        df_grouped, 
         x="Category", 
         y="Count",
-        color="Category",
-        color_discrete_map=color_map,
-        title="Message Distribution by Triage Category",
+        color="Urgency Label",
+        title="Message Distribution by Category and Urgency Level",
         labels={"Count": "Number of Messages", "Category": "Triage Category"}
     )
     
+    # Manually set the color scale to match our urgency levels
+    for i, trace in enumerate(fig.data):
+        urgency = 5 - i  # Since they're in descending order in the legend
+        if urgency in color_map:
+            trace.marker.color = color_map[urgency]
+    
     # Improve styling
     fig.update_layout(
-        xaxis_title="Triage Category",
+        xaxis_title="Message Category",
         yaxis_title="Number of Messages",
         plot_bgcolor="white",
-        font=dict(family="Arial", size=14)
+        font=dict(family="Arial", size=14),
+        legend_title="Urgency Level"
     )
     
     return fig
@@ -106,20 +130,20 @@ def create_triage_timeline_chart(messages: List[TriagedMessage]) -> go.Figure:
         data.append({
             "Date": msg.datetime.date(),
             "Category": msg.triage_category,
+            "Urgency": msg.urgency_level,
             "Count": 1
         })
     
     df = pd.DataFrame(data)
+    
+    # Group by date and category
     df_grouped = df.groupby(["Date", "Category"]).sum().reset_index()
     
-    # Define color scheme for triage levels
-    color_map = {
-        "URGENT_CLINICAL": "#e74c3c",    # Red
-        "CLINICAL": "#f39c12",           # Orange
-        "PRESCRIPTION": "#3498db",       # Blue
-        "ADMINISTRATIVE": "#2ecc71",     # Green
-        "INFORMATIONAL": "#95a5a6"       # Gray
-    }
+    # Get category colors
+    # Use a distinct color for each category, separate from urgency colors
+    unique_categories = df_grouped["Category"].unique()
+    category_colors = px.colors.qualitative.Plotly[:len(unique_categories)]
+    color_map = {cat: color for cat, color in zip(unique_categories, category_colors)}
     
     # Create line chart
     fig = px.line(
@@ -137,30 +161,31 @@ def create_triage_timeline_chart(messages: List[TriagedMessage]) -> go.Figure:
         xaxis_title="Date",
         yaxis_title="Number of Messages",
         plot_bgcolor="white",
-        font=dict(family="Arial", size=14)
+        font=dict(family="Arial", size=14),
+        legend_title="Message Category"
     )
     
     return fig
 
 
-def get_message_alert_color(triage_level: int) -> str:
-    """Get the alert color for a given triage level.
+def get_message_alert_color(urgency_level: int) -> str:
+    """Get the alert color for a given urgency level.
     
     Args:
-        triage_level: The triage urgency level (1-5)
+        urgency_level: The urgency level (1-5, with 5 being most urgent)
         
     Returns:
         CSS color string
     """
     color_map = {
-        5: "#e74c3c",  # Red for URGENT_CLINICAL
-        4: "#f39c12",  # Orange for CLINICAL
-        3: "#3498db",  # Blue for PRESCRIPTION
-        2: "#2ecc71",  # Green for ADMINISTRATIVE
-        1: "#95a5a6"   # Gray for INFORMATIONAL
+        5: "#e74c3c",  # Red for IMMEDIATE
+        4: "#f39c12",  # Orange for URGENT
+        3: "#3498db",  # Blue for PRIORITY
+        2: "#2ecc71",  # Green for ROUTINE
+        1: "#95a5a6"   # Gray for LOW
     }
     
-    return color_map.get(triage_level, "#95a5a6")
+    return color_map.get(urgency_level, "#95a5a6")
 
 
 def format_datetime(dt: datetime) -> str:
