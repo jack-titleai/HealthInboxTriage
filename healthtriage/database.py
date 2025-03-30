@@ -142,17 +142,35 @@ class Database:
         triaged_messages = []
         
         for row in results:
-            triaged_message = TriagedMessage(
-                message_id=row['message_id'],
-                subject=row['subject'],
-                message=row['message'],
-                datetime=datetime.fromisoformat(row['datetime']),
-                triage_category=row['triage_category'],
-                triage_level=row['triage_level'],
-                confidence=row['confidence'],
-                processed_at=datetime.fromisoformat(row['processed_at'])
-            )
-            triaged_messages.append(triaged_message)
+            try:
+                # Handle potential datetime parsing issues
+                try:
+                    msg_datetime = datetime.fromisoformat(row['datetime'])
+                except ValueError:
+                    # Try to handle different date formats
+                    msg_datetime = datetime.strptime(row['datetime'], "%Y-%m-%dT%H:%M:%S")
+                
+                try:
+                    processed_at = datetime.fromisoformat(row['processed_at'])
+                except ValueError:
+                    # Try to handle different date formats
+                    processed_at = datetime.strptime(row['processed_at'], "%Y-%m-%dT%H:%M:%S")
+                
+                triaged_message = TriagedMessage(
+                    message_id=row['message_id'],
+                    subject=row['subject'],
+                    message=row['message'],
+                    datetime=msg_datetime,
+                    triage_category=row['triage_category'],
+                    triage_level=row['triage_level'],
+                    confidence=row['confidence'],
+                    processed_at=processed_at
+                )
+                triaged_messages.append(triaged_message)
+            except Exception as e:
+                print(f"Error processing message {row['message_id']}: {e}")
+                # Continue with other messages even if one fails
+                continue
         
         conn.close()
         return triaged_messages
@@ -208,17 +226,35 @@ class Database:
         triaged_messages = []
         
         for row in results:
-            triaged_message = TriagedMessage(
-                message_id=row['message_id'],
-                subject=row['subject'],
-                message=row['message'],
-                datetime=datetime.fromisoformat(row['datetime']),
-                triage_category=row['triage_category'],
-                triage_level=row['triage_level'],
-                confidence=row['confidence'],
-                processed_at=datetime.fromisoformat(row['processed_at'])
-            )
-            triaged_messages.append(triaged_message)
+            try:
+                # Handle potential datetime parsing issues
+                try:
+                    msg_datetime = datetime.fromisoformat(row['datetime'])
+                except ValueError:
+                    # Try to handle different date formats
+                    msg_datetime = datetime.strptime(row['datetime'], "%Y-%m-%dT%H:%M:%S")
+                
+                try:
+                    processed_at = datetime.fromisoformat(row['processed_at'])
+                except ValueError:
+                    # Try to handle different date formats
+                    processed_at = datetime.strptime(row['processed_at'], "%Y-%m-%dT%H:%M:%S")
+                
+                triaged_message = TriagedMessage(
+                    message_id=row['message_id'],
+                    subject=row['subject'],
+                    message=row['message'],
+                    datetime=msg_datetime,
+                    triage_category=row['triage_category'],
+                    triage_level=row['triage_level'],
+                    confidence=row['confidence'],
+                    processed_at=processed_at
+                )
+                triaged_messages.append(triaged_message)
+            except Exception as e:
+                print(f"Error processing filtered message {row['message_id']}: {e}")
+                # Continue with other messages even if one fails
+                continue
         
         conn.close()
         return triaged_messages
@@ -243,13 +279,25 @@ class Database:
         messages = []
         
         for row in results:
-            message = Message(
-                message_id=row['message_id'],
-                subject=row['subject'],
-                message=row['message'],
-                datetime=datetime.fromisoformat(row['datetime'])
-            )
-            messages.append(message)
+            try:
+                # Handle potential datetime parsing issues
+                try:
+                    msg_datetime = datetime.fromisoformat(row['datetime'])
+                except ValueError:
+                    # Try to handle different date formats
+                    msg_datetime = datetime.strptime(row['datetime'], "%Y-%m-%dT%H:%M:%S")
+                
+                message = Message(
+                    message_id=row['message_id'],
+                    subject=row['subject'],
+                    message=row['message'],
+                    datetime=msg_datetime
+                )
+                messages.append(message)
+            except Exception as e:
+                print(f"Error processing untriaged message {row['message_id']}: {e}")
+                # Continue with other messages even if one fails
+                continue
         
         conn.close()
         return messages

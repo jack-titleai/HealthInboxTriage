@@ -70,6 +70,11 @@ def show_dashboard(db: Database):
     # Get all triaged messages
     all_messages = db.get_all_triaged_messages()
     
+    # Debug information to help troubleshoot
+    st.sidebar.subheader("Debug Information")
+    st.sidebar.info(f"Database path: {db.db_path}")
+    st.sidebar.info(f"Total messages loaded: {len(all_messages)}")
+    
     if not all_messages:
         st.info("No triaged messages found. Upload messages in the 'Upload Messages' tab to get started.")
         return
