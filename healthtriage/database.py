@@ -20,19 +20,8 @@ class Database:
         """
         self.db_path = db_path
         
-        # Check if database already exists
-        db_exists = os.path.exists(self.db_path)
-        
-        # If the database already exists, rename it as a backup
-        if db_exists:
-            backup_path = f"{self.db_path}.bak"
-            try:
-                os.rename(self.db_path, backup_path)
-                print(f"Existing database backed up to {backup_path}")
-            except Exception as e:
-                print(f"Warning: Could not back up existing database: {e}")
-        
-        # Create the tables
+        # Create the tables if they don't exist
+        # (SQLite will create the database file if it doesn't exist)
         self._create_tables()
     
     def _get_connection(self) -> sqlite3.Connection:

@@ -36,7 +36,7 @@ def main():
         st.error("OpenAI API key not found in environment variables. Please set the OPENAI_API_KEY environment variable.")
         st.stop()
     
-    triager = MessageTriager(api_key=api_key)
+    triager = MessageTriager(api_key=api_key or "")
     
     # App title and introduction
     st.title("Healthcare Provider Inbox Triage")

@@ -31,7 +31,7 @@ class MessageTriager:
         "LOW": 1          # Low priority/no action required
     }
     
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = ""):
         """Initialize the message triager.
         
         Args:
