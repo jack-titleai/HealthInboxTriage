@@ -266,7 +266,8 @@ def upload_messages(db: Database, triager: MessageTriager):
                 status_text.text("Triage complete!")
                 
                 st.success(f"Successfully triaged {total_messages} messages.")
-                st.info("Switch to the Dashboard tab to view results.")
+                # Force a rerun of the app to refresh the dashboard
+                st.rerun()
             
         except Exception as e:
             st.error(f"Error processing CSV file: {str(e)}")
