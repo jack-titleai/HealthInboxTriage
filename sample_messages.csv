@@ -1,0 +1,11 @@
+message_id,subject,message,datetime
+123e4567-e89b-12d3-a456-426614174000,Prescription refill request,"Hello Dr. Smith, I need a refill for my blood pressure medication (lisinopril). I'm almost out and have no more refills. Thank you.",2025-03-01T10:15:30
+123e4567-e89b-12d3-a456-426614174001,Severe chest pain,"I've been having intense chest pain for the last hour that radiates to my left arm. It's getting worse and I'm feeling short of breath. Should I go to the ER?",2025-03-01T14:22:15
+123e4567-e89b-12d3-a456-426614174002,Lab results question,"Dr. Smith, I received my lab results through the patient portal but I'm not sure how to interpret them. My cholesterol is 245. Is that concerning?",2025-03-02T09:30:00
+123e4567-e89b-12d3-a456-426614174003,Appointment rescheduling,"Hi, I need to reschedule my appointment that was set for next Tuesday. I have a work conflict. Do you have any openings later in the week?",2025-03-02T16:45:22
+123e4567-e89b-12d3-a456-426614174004,Thank you note,"Just wanted to say thank you for the great care during my visit last week. I'm feeling much better already!",2025-03-03T11:20:10
+123e4567-e89b-12d3-a456-426614174005,New symptoms,"I've developed a rash on my arms and legs that started yesterday. It's itchy and spreading. No other symptoms or fever. Should I be concerned?",2025-03-03T19:05:40
+123e4567-e89b-12d3-a456-426614174006,Insurance question,"Hello, I just received a bill for my last visit but I thought it should be covered by my insurance. Can someone from billing contact me?",2025-03-04T08:15:00
+123e4567-e89b-12d3-a456-426614174007,Medication side effects,"I started the new antibiotic two days ago and I'm experiencing severe nausea and dizziness. Should I stop taking it or continue?",2025-03-04T14:30:25
+123e4567-e89b-12d3-a456-426614174008,Medical records request,"I'm switching to a specialist and need my medical records transferred. How do I request this?",2025-03-05T10:45:15
+123e4567-e89b-12d3-a456-426614174009,Urgent allergic reaction,"My son is having an allergic reaction to peanuts. He has hives and his face is swelling. We used his EpiPen and are heading to the ER now. Please advise.",2025-03-05T20:10:30
