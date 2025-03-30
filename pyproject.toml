@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "healthtriage"
+version = "0.1.0"
+description = "Healthcare provider inbox triage application using NLP"
+authors = [
+    {name = "Healthcare Triage Team"}
+]
+requires-python = ">=3.9"
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "streamlit>=1.22.0",
+    "pandas>=1.3.0",
+    "plotly>=5.10.0",
+    "openai>=1.0.0",
+    "python-dotenv>=0.20.0",
+]
+
+[project.scripts]
+healthtriage-app = "healthtriage.app:main"
+
+[tool.setuptools]
+packages = ["healthtriage"]
+
+[project.urls]
+"Homepage" = "https://github.com/username/healthtriage"
+"Bug Tracker" = "https://github.com/username/healthtriage/issues"
